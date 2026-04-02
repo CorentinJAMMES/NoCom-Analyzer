@@ -1,0 +1,7 @@
+
+admin
+login
+backup
+test
+robots.txt
+.git
