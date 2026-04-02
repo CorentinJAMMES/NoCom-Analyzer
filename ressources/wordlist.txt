@@ -5,3 +5,8 @@ backup
 test
 robots.txt
 .git
+login.php
+images
+CVS
+cgi-bin
+pictures
