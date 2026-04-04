@@ -1,53 +1,57 @@
-import requests
-import concurrent.futures
-import argparse  # La bibliothèque pour gérer les flags dans le terminal
+import argparse
+import os
 
-# 1. On configure le menu d'aide et les arguments
-parser = argparse.ArgumentParser(description="NoCom-Analyzer : Fuzzer et outil de reconnaissance Web")
+from core.fuzzer import start_fuzzer
+from core.crawler import start_crawler
 
-# Les arguments obligatoires et optionnels
-parser.add_argument("-u", "--url", help="L'URL cible (ex: http://demo.testfire.net)", required=True)
-parser.add_argument("-w", "--wordlist", help="Le fichier dictionnaire à utiliser", default="../ressources/wordlist.txt")
-parser.add_argument("-t", "--threads", help="Le nombre de requêtes simultanées", type=int, default=10)
-parser.add_argument("-o", "--output", help="Le nom du fichier pour sauvegarder les résultats (optionnel)")
+# Configuration des arguments CLI
+parser = argparse.ArgumentParser(description="NoCom-Analyzer : Outil de reconnaissance Web")
+parser.add_argument("-u", "--url", help="L'URL cible", required=True)
+parser.add_argument("-w", "--wordlist", help="Fichier dictionnaire", default="../ressources/wordlist.txt") # On pointe vers ressources par défaut
+parser.add_argument("-t", "--threads", help="Requêtes simultanées", type=int, default=10)
+parser.add_argument("-o", "--output", help="Nom du fichier de sauvegarde (ex: rapport.txt)")
+parser.add_argument("-m", "--mode", choices=["fuzzer", "crawler"], default="fuzzer", help="Mode d'analyse : fuzzer (défaut) ou crawler")
 
-# On lit ce que l'utilisateur a tapé dans le terminal
 args = parser.parse_args()
 
-print(f"[*] Cible : {args.url} | Threads : {args.threads} | Wordlist : {args.wordlist}")
+chemin_complet_output = None
+
 if args.output:
-    print(f"[*] Les résultats seront sauvegardés dans : {args.output}")
+    # on définit le chemin du dossier de résultats
+    dossier_resultats = "../results"
+    
+    # crée le dossier s'il n'existe pas, et ne fait rien s'il est déjà là (exist_ok=True)
+    os.makedirs(dossier_resultats, exist_ok=True)
+    
+    # on fusionne le dossier et le nom du fichier (ex: ../results/rapport.txt)
+    chemin_complet_output = os.path.join(dossier_resultats, args.output)
+    
+    print(f"[*] Les résultats seront sauvegardés dans : {chemin_complet_output}")
 
-# 2. La fonction de test (modifiée pour écrire dans le fichier si l'option -o est utilisée)
-def tester_url(mot):
-    url_test = f"{args.url}/{mot}"
+# On lance le module choisi
+if args.mode == "fuzzer":
     try:
-        reponse = requests.get(url_test, timeout=3)
-        if reponse.status_code in [200, 204, 301, 302, 403]:
-            resultat = f"[+] Succès ({reponse.status_code}) : {url_test}"
-            print(resultat)
-            
-            # Si l'utilisateur a utilisé le flag -o, on écrit dans le fichier
-            if args.output:
-                with open(args.output, "a") as fichier_rapport:
-                    fichier_rapport.write(resultat + "\n")
-                    
-    except requests.RequestException:
-        pass
+        with open(args.wordlist, "r") as fichier:
+            mots = [ligne.strip() for ligne in fichier]
+    except FileNotFoundError:
+        print(f"[!] Erreur : Le fichier {args.wordlist} est introuvable.")
+        exit()
 
-# 3. Chargement de la wordlist (en utilisant args.wordlist)
-liste_mots = []
-try:
-    with open(args.wordlist, "r") as fichier:
-        for ligne in fichier:
-            liste_mots.append(ligne.strip())
-except FileNotFoundError:
-    print(f"[!] Erreur : Le fichier {args.wordlist} est introuvable.")
-    exit()
+    print(f"[*] Démarrage du Fuzzer sur {args.url} avec {args.threads} threads...")
+    
+    # on lance le fuzzer et on RÉCUPÈRE sa réponse
+    resultats = start_fuzzer(args.url, mots, args.threads)
+    
+    if chemin_complet_output and resultats:
+        with open(chemin_complet_output, "a") as f:
+            for ligne in resultats:
+                f.write(ligne + "\n")
+                
+elif args.mode == "crawler":
+    # on lance le Crawler et on RÉCUPÈRE les liens
+    resultats = start_crawler(args.url)
 
-# 4. Le mode Turbo (en utilisant args.threads)
-print(f"[*] Démarrage du scan...")
-with concurrent.futures.ThreadPoolExecutor(max_workers=args.threads) as executor:
-    executor.map(tester_url, liste_mots)
-
-print("[*] Scan terminé !")
+    if chemin_complet_output and resultats:
+        with open(chemin_complet_output, "a") as f:
+            for lien in resultats:
+                f.write(f"[Lien trouvé] : {lien}\n")
