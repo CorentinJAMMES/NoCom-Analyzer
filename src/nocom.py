@@ -3,6 +3,7 @@ import os
 
 from core.fuzzer import start_fuzzer
 from core.crawler import start_crawler
+from core.scanner import start_scanner
 
 # Configuration des arguments CLI
 parser = argparse.ArgumentParser(description="NoCom-Analyzer : Outil de reconnaissance Web")
@@ -10,8 +11,7 @@ parser.add_argument("-u", "--url", help="L'URL cible", required=True)
 parser.add_argument("-w", "--wordlist", help="Fichier dictionnaire", default="../ressources/wordlist.txt") # On pointe vers ressources par défaut
 parser.add_argument("-t", "--threads", help="Requêtes simultanées", type=int, default=10)
 parser.add_argument("-o", "--output", help="Nom du fichier de sauvegarde (ex: rapport.txt)")
-parser.add_argument("-m", "--mode", choices=["fuzzer", "crawler"], default="fuzzer", help="Mode d'analyse : fuzzer (défaut) ou crawler")
-
+parser.add_argument("-m", "--mode", choices=["fuzzer", "crawler", "scanner"], default="fuzzer", help="Mode d'analyse : fuzzer, crawler, ou scanner")
 args = parser.parse_args()
 
 chemin_complet_output = None
@@ -39,7 +39,7 @@ if args.mode == "fuzzer":
 
     print(f"[*] Démarrage du Fuzzer sur {args.url} avec {args.threads} threads...")
     
-    # on lance le fuzzer et on RÉCUPÈRE sa réponse
+    # on lance le fuzzer et on récupère sa réponse
     resultats = start_fuzzer(args.url, mots, args.threads)
     
     if chemin_complet_output and resultats:
@@ -48,10 +48,17 @@ if args.mode == "fuzzer":
                 f.write(ligne + "\n")
                 
 elif args.mode == "crawler":
-    # on lance le Crawler et on RÉCUPÈRE les liens
+    # on lance le Crawler et on récupère les liens
     resultats = start_crawler(args.url)
 
     if chemin_complet_output and resultats:
         with open(chemin_complet_output, "a") as f:
             for lien in resultats:
                 f.write(f"[Lien trouvé] : {lien}\n")
+
+elif args.mode == "scanner":
+    resultats = start_scanner(args.url)
+    if chemin_complet_output and resultats:
+        with open(chemin_complet_output, "a") as f:
+            for faille in resultats:
+                f.write(f"[VULNÉRABILITÉ SQL] : {faille}\n")
