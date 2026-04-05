@@ -3,7 +3,9 @@ import os
 
 from core.fuzzer import start_fuzzer
 from core.crawler import start_crawler
-from core.scanner import start_scanner
+from core.sql_scanner import start_sql_scanner
+from core.xss_scanner import start_xss_scanner
+from core.autopwn import start_autopwn
 
 # Configuration des arguments CLI
 parser = argparse.ArgumentParser(description="NoCom-Analyzer : Outil de reconnaissance Web")
@@ -11,7 +13,7 @@ parser.add_argument("-u", "--url", help="L'URL cible", required=True)
 parser.add_argument("-w", "--wordlist", help="Fichier dictionnaire", default="../ressources/wordlist.txt") # On pointe vers ressources par défaut
 parser.add_argument("-t", "--threads", help="Requêtes simultanées", type=int, default=10)
 parser.add_argument("-o", "--output", help="Nom du fichier de sauvegarde (ex: rapport.txt)")
-parser.add_argument("-m", "--mode", choices=["fuzzer", "crawler", "scanner", "auto"], default="fuzzer", help="Mode d'analyse : fuzzer, crawler, scanner ou auto")
+parser.add_argument("-m", "--mode", choices=["fuzzer", "crawler", "sql", "xss", "auto"], default="fuzzer", help="Mode d'analyse : fuzzer, crawler, sql, xss ou auto")
 args = parser.parse_args()
 
 chemin_complet_output = None
@@ -56,8 +58,8 @@ elif args.mode == "crawler":
             for lien in resultats:
                 f.write(f"[Lien trouvé] : {lien}\n")
 
-elif args.mode == "scanner":
-    resultats = start_scanner(args.url)
+elif args.mode == "sql":
+    resultats = start_sql_scanner(args.url)
     if chemin_complet_output and resultats:
         with open(chemin_complet_output, "a") as f:
             for faille in resultats:
@@ -67,7 +69,7 @@ elif args.mode == "auto":
     toutes_les_failles = start_autopwn(args.url)
     
     print("\n" + "="*50)
-    print("📊 RAPPORT FINAL AUTO-PWN 📊")
+    print("RAPPORT FINAL AUTO-PWN")
     print("="*50)
     if toutes_les_failles:
         print(f"\033[91m[!!!] MISSION ACCOMPLIE : {len(toutes_les_failles)} FAILLES CRITIQUES DÉTECTÉES !\033[0m")
@@ -78,6 +80,13 @@ elif args.mode == "auto":
             with open(chemin_complet_output, "w") as f:
                 f.write("=== RAPPORT DE VULNÉRABILITÉS ===\n")
                 for faille in toutes_les_failles:
-                    f.write(f"[FAILLE SQL] : {faille}\n")
+                    f.write(f"[VULNÉRABILITÉ] : {faille}\n")
     else:
         print("[+] Le site a résisté à l'assaut. Aucune faille évidente trouvée.")
+
+elif args.mode == "xss":
+    resultats = start_xss_scanner(args.url)
+    if chemin_complet_output and resultats:
+        with open(chemin_complet_output, "a") as f:
+            for faille in resultats:
+                f.write(f"[VULNÉRABILITÉ XSS] : {faille}\n")

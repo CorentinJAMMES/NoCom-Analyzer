@@ -10,7 +10,7 @@ ERREURS_SQL = [
     "Microsoft OLE DB Provider for SQL Server"
 ]
 
-def start_scanner(url_cible):
+def start_sql_scanner(url_cible):
     """
     Teste une URL pour des failles d'injection SQL basiques.
     """
@@ -20,7 +20,7 @@ def start_scanner(url_cible):
     if "?" not in url_cible:
         print("[-] Attention : L'URL ne contient pas de paramètres (ex: ?id=1).")
 
-    # 1. NOTRE DÉGUISEMENT : On se fait passer pour Google Chrome
+    # on se fait passer pour Google Chrome
     headers_navigateur = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     }
@@ -30,7 +30,7 @@ def start_scanner(url_cible):
         print(f"[*] Test en cours : {url_test}")
 
         try:
-            # 2. On utilise notre déguisement (headers) et on attend plus longtemps (timeout=10)
+            # on utilise notre déguisement (headers) et on attend plus longtemps (timeout=10)
             reponse = requests.get(url_test, headers=headers_navigateur, timeout=10)
             
             for erreur in ERREURS_SQL:
@@ -43,7 +43,7 @@ def start_scanner(url_cible):
                     
         except requests.RequestException as e:
             print(f"[!] Erreur de connexion avec le payload {payload}")
-            # 3. On affiche la vraie raison du crash pour pouvoir enquêter
+            # on affiche la vraie raison du crash pour pouvoir enquêter
             print(f"    -> Détails techniques : {e}")
 
     if not failles_trouvees:
